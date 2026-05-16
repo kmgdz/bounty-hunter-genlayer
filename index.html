@@ -933,23 +933,64 @@ let wallet = null;
 // WALLET
 // ═══════════════════════════════════════════════════════════
 async function connectWallet() {
-  if (!window.ethereum) return alert("MetaMask not found");
-  const accounts = await window.ethereum.request({ method: "eth_requestAccounts" });
-  wallet = accounts[0];
-  document.getElementById("walletAddr").textContent = wallet.slice(0,6)+"…"+wallet.slice(-4);
-  document.getElementById("walletAddr").style.display = "block";
-  document.getElementById("walletBtn").style.display = "none";
+  if (!window.ethereum) return alert("MetaMask not found. Please install it from metamask.io");
+
+  const btn = document.getElementById("walletBtn");
+  btn.textContent = "CONNECTING…";
+  btn.disabled = true;
+
   try {
-    await window.ethereum.request({ method: "wallet_switchEthereumChain", params:[{chainId:CHAIN_ID}] });
-  } catch(e) {
-    if (e.code === 4902) {
-      await window.ethereum.request({ method: "wallet_addEthereumChain", params:[{
-        chainId: CHAIN_ID, chainName: "GenLayer Bradbury",
-        rpcUrls: [RPC], nativeCurrency: { name:"GEN", symbol:"GEN", decimals:18 }
-      }]});
+    // 1. Request accounts
+    const accounts = await window.ethereum.request({ method: "eth_requestAccounts" });
+    wallet = accounts[0];
+
+    // 2. Try switching to Bradbury
+    try {
+      await window.ethereum.request({
+        method: "wallet_switchEthereumChain",
+        params: [{ chainId: CHAIN_ID }]
+      });
+    } catch(switchErr) {
+      if (switchErr.code === 4902) {
+        // Network not added yet — add it then switch
+        await window.ethereum.request({
+          method: "wallet_addEthereumChain",
+          params: [{
+            chainId:           CHAIN_ID,
+            chainName:         "GenLayer Bradbury Testnet",
+            rpcUrls:           [RPC],
+            blockExplorerUrls: ["https://explorer-bradbury.genlayer.com"],
+            nativeCurrency:    { name: "GEN", symbol: "GEN", decimals: 18 }
+          }]
+        });
+        await window.ethereum.request({
+          method: "wallet_switchEthereumChain",
+          params: [{ chainId: CHAIN_ID }]
+        });
+      } else {
+        throw switchErr;
+      }
     }
+
+    // 3. Confirm correct chain
+    const currentChain = await window.ethereum.request({ method: "eth_chainId" });
+    if (currentChain.toLowerCase() !== CHAIN_ID.toLowerCase()) {
+      throw new Error("Please manually switch to GenLayer Bradbury Testnet in MetaMask");
+    }
+
+    // 4. Update UI
+    document.getElementById("walletAddr").textContent = wallet.slice(0,6)+"…"+wallet.slice(-4);
+    document.getElementById("walletAddr").style.display = "block";
+    btn.style.display = "none";
+
+    // 5. Load live on-chain data
+    await loadBounties();
+
+  } catch(e) {
+    btn.textContent = "CONNECT WALLET";
+    btn.disabled = false;
+    alert("Connection failed: " + e.message);
   }
-  await loadBounties();
 }
 
 // ═══════════════════════════════════════════════════════════
@@ -1272,8 +1313,22 @@ window.addEventListener("load", () => {
       wallet = accs[0]||null;
       const el = document.getElementById("walletAddr");
       const btn = document.getElementById("walletBtn");
-      if (wallet) { el.textContent=wallet.slice(0,6)+"…"+wallet.slice(-4); el.style.display="block"; btn.style.display="none"; }
-      else { el.style.display="none"; btn.style.display="block"; }
+      if (wallet) {
+        el.textContent = wallet.slice(0,6)+"…"+wallet.slice(-4);
+        el.style.display = "block";
+        btn.style.display = "none";
+        loadBounties();
+      } else {
+        wallet = null;
+        el.style.display = "none";
+        btn.textContent = "CONNECT WALLET";
+        btn.disabled = false;
+        btn.style.display = "block";
+        document.getElementById("bountyGrid").innerHTML = \`<div class="empty"><div class="empty-icon">🔌</div><h3>CONNECT WALLET</h3><p>Connect your wallet to load live bounties from the contract.</p></div>\`;
+        document.getElementById("statTotal").textContent = "—";
+        document.getElementById("statOpen").textContent  = "—";
+        document.getElementById("statPaid").textContent  = "—";
+      }
     });
   }
 });
