@@ -1000,16 +1000,19 @@ async function loadBounties() {
       callView("get_open_bounties",[]),
       callView("get_stats",[])
     ]);
-  } catch {
-    bounties = DEMO_BOUNTIES;
-    stats = { total_created:3, total_paid_wei:0, next_id:3 };
+  } catch(e) {
+    grid.innerHTML = `<div class="empty"><div class="empty-icon">⚠</div><h3>COULD NOT REACH CONTRACT</h3><p>Connect your wallet and try again.</p></div>`;
+    document.getElementById("statTotal").textContent = "—";
+    document.getElementById("statOpen").textContent  = "—";
+    document.getElementById("statPaid").textContent  = "—";
+    return;
   }
 
-  bounties = bounties || DEMO_BOUNTIES;
-  document.getElementById("statTotal").textContent = stats?.total_created ?? bounties.length;
+  bounties = bounties || [];
+  document.getElementById("statTotal").textContent = stats?.total_created ?? "—";
   document.getElementById("statOpen").textContent  = bounties.length;
   document.getElementById("statPaid").textContent  = stats?.total_paid_wei
-    ? (Number(BigInt(stats.total_paid_wei))/1e18).toFixed(1)+"G" : "0G";
+    ? (Number(BigInt(stats.total_paid_wei))/1e18).toFixed(1)+" GEN" : "0 GEN";
 
   if (!bounties.length) {
     grid.innerHTML = `<div class="empty"><div class="empty-icon">🎯</div><h3>NO OPEN BOUNTIES</h3><p>Be the first to post one.</p></div>`;
@@ -1045,8 +1048,11 @@ async function openModal(id) {
 
   let b;
   try { b = await callView("get_bounty",[id]); }
-  catch { b = DEMO_BOUNTIES.find(x=>x.bounty_id===id); }
-  if (!b) { document.getElementById("modalBody").innerHTML = "Not found."; return; }
+  catch(e) {
+    document.getElementById("modalBody").innerHTML = `<div style="color:var(--red);font-family:var(--f-mono);font-size:13px;">ERROR: ${esc(e.message)}</div>`;
+    return;
+  }
+  if (!b) { document.getElementById("modalBody").innerHTML = `<div style="color:var(--mist);font-family:var(--f-mono);">Bounty not found.</div>`; return; }
 
   document.getElementById("modalTitle").textContent = esc(b.title);
   const gen = (b.reward_wei/1e18).toFixed(4);
@@ -1250,20 +1256,17 @@ function esc(s) {
   return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
 }
 
-// ═══════════════════════════════════════════════════════════
-// DEMO DATA (shown when contract not reachable)
-// ═══════════════════════════════════════════════════════════
-const DEMO_BOUNTIES = [
-  { bounty_id:0, poster:"0xABC…123", title:"Build a Python CSV Analyzer", spec:"The submitted GitHub repo must contain a Python script that accepts a CSV file, computes column averages, and outputs a Markdown table. Must include a README with usage instructions and at least one test file.", reward_wei:5e18, deadline:0, status:"open", solver:"", sub_url:"", verdict:"", reasoning:"" },
-  { bounty_id:1, poster:"0xDEF…456", title:"Write a GenLayer Tutorial", spec:"The submitted URL must be a published blog post or GitHub page explaining how GenLayer Intelligent Contracts work. Must cover LLM consensus and include a code example using gl.nondet.exec_prompt.", reward_wei:10e18, deadline:0, status:"open", solver:"", sub_url:"", verdict:"", reasoning:"" },
-  { bounty_id:2, poster:"0x111…222", title:"Deploy a DeFi Landing Page", spec:"A publicly deployed webpage with hero section, features grid, and a Connect Wallet button. Must be mobile responsive and load in under 3 seconds.", reward_wei:20e18, deadline:0, status:"open", solver:"", sub_url:"", verdict:"", reasoning:"" },
-];
+// No demo data — all data comes from the live contract only
 
 // ═══════════════════════════════════════════════════════════
 // INIT
 // ═══════════════════════════════════════════════════════════
 window.addEventListener("load", () => {
-  loadBounties();
+  // Stats start blank — only populate after real contract call
+  document.getElementById("statTotal").textContent = "—";
+  document.getElementById("statOpen").textContent  = "—";
+  document.getElementById("statPaid").textContent  = "—";
+  document.getElementById("bountyGrid").innerHTML = `<div class="empty"><div class="empty-icon">🔌</div><h3>CONNECT WALLET</h3><p>Connect your wallet to load live bounties from the contract.</p></div>`;
   if (window.ethereum) {
     window.ethereum.on("accountsChanged", accs => {
       wallet = accs[0]||null;
