@@ -1,0 +1,1279 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Bounty Hunter — Trustless Work on GenLayer</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Space+Mono:ital,wght@0,400;0,700;1,400&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet"/>
+<style>
+/* ═══════════════════════════════════════════════════════════
+   DESIGN SYSTEM — Industrial / Crypto-Noir
+   Palette: Near-black + Electric Yellow + White
+   Type: Bebas Neue (display) + Space Mono (data) + DM Sans (body)
+═══════════════════════════════════════════════════════════ */
+:root {
+  --ink:      #0c0c0e;
+  --ink2:     #141418;
+  --ink3:     #1e1e24;
+  --ink4:     #2a2a34;
+  --wire:     #3a3a48;
+  --mist:     #888899;
+  --chalk:    #d8d8e8;
+  --white:    #f0f0f8;
+  --volt:     #e8f520;
+  --volt2:    #c8d510;
+  --teal:     #20f5d4;
+  --red:      #f52040;
+  --amber:    #f5a020;
+
+  --f-display: 'Bebas Neue', sans-serif;
+  --f-mono:    'Space Mono', monospace;
+  --f-body:    'DM Sans', sans-serif;
+
+  --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+html { scroll-behavior: smooth; }
+
+body {
+  background: var(--ink);
+  color: var(--white);
+  font-family: var(--f-body);
+  font-size: 15px;
+  line-height: 1.6;
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+/* ── Noise overlay ── */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.03'/%3E%3C/svg%3E");
+  pointer-events: none;
+  z-index: 9999;
+  opacity: 0.4;
+}
+
+/* ── Scrollbar ── */
+::-webkit-scrollbar { width: 4px; }
+::-webkit-scrollbar-track { background: var(--ink2); }
+::-webkit-scrollbar-thumb { background: var(--volt); border-radius: 2px; }
+
+/* ═══ HEADER ═══════════════════════════════════════════════ */
+header {
+  position: fixed;
+  top: 0; left: 0; right: 0;
+  z-index: 100;
+  height: 64px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 32px;
+  border-bottom: 1px solid var(--wire);
+  background: rgba(12,12,14,0.85);
+  backdrop-filter: blur(20px);
+}
+
+.logo {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.logo-mark {
+  width: 36px; height: 36px;
+  background: var(--volt);
+  clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
+  display: flex; align-items: center; justify-content: center;
+  animation: hex-pulse 3s ease-in-out infinite;
+}
+@keyframes hex-pulse {
+  0%,100%{transform:scale(1)}
+  50%{transform:scale(1.08)}
+}
+.logo-mark svg { width:16px; height:16px; }
+.logo-text {
+  font-family: var(--f-display);
+  font-size: 22px;
+  letter-spacing: 2px;
+  color: var(--white);
+}
+.logo-text span { color: var(--volt); }
+
+.header-right { display: flex; align-items: center; gap: 12px; }
+
+.chain-pill {
+  display: flex; align-items: center; gap: 6px;
+  font-family: var(--f-mono);
+  font-size: 10px;
+  color: var(--teal);
+  background: rgba(32,245,212,0.08);
+  border: 1px solid rgba(32,245,212,0.2);
+  border-radius: 20px;
+  padding: 5px 12px;
+}
+.chain-dot {
+  width: 6px; height: 6px; border-radius: 50%;
+  background: var(--teal);
+  animation: blink 1.5s ease-in-out infinite;
+}
+@keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.2} }
+
+#walletBtn {
+  font-family: var(--f-mono);
+  font-size: 11px;
+  padding: 8px 16px;
+  border-radius: 4px;
+  border: 1px solid var(--volt);
+  background: transparent;
+  color: var(--volt);
+  cursor: pointer;
+  transition: all 0.2s;
+  letter-spacing: 1px;
+}
+#walletBtn:hover { background: var(--volt); color: var(--ink); }
+#walletAddr {
+  font-family: var(--f-mono);
+  font-size: 11px;
+  color: var(--mist);
+  background: var(--ink3);
+  border: 1px solid var(--wire);
+  border-radius: 4px;
+  padding: 6px 12px;
+  display: none;
+}
+
+/* ═══ HERO ══════════════════════════════════════════════════ */
+.hero {
+  padding: 160px 32px 80px;
+  position: relative;
+  overflow: hidden;
+}
+
+.hero-grid {
+  position: absolute;
+  inset: 0;
+  background-image:
+    linear-gradient(rgba(232,245,32,0.04) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(232,245,32,0.04) 1px, transparent 1px);
+  background-size: 60px 60px;
+  mask-image: radial-gradient(ellipse 80% 60% at 50% 0%, black 0%, transparent 100%);
+}
+
+.hero-content { position: relative; max-width: 1100px; margin: 0 auto; }
+
+.hero-eyebrow {
+  font-family: var(--f-mono);
+  font-size: 11px;
+  letter-spacing: 3px;
+  color: var(--volt);
+  text-transform: uppercase;
+  margin-bottom: 20px;
+  display: flex; align-items: center; gap: 12px;
+}
+.hero-eyebrow::before {
+  content: '';
+  width: 40px; height: 1px;
+  background: var(--volt);
+}
+
+.hero h1 {
+  font-family: var(--f-display);
+  font-size: clamp(64px, 10vw, 140px);
+  line-height: 0.9;
+  letter-spacing: 2px;
+  margin-bottom: 32px;
+}
+.hero h1 .line2 { color: var(--volt); display: block; }
+
+.hero-sub {
+  font-size: 17px;
+  color: var(--mist);
+  max-width: 520px;
+  margin-bottom: 48px;
+  line-height: 1.7;
+}
+
+.hero-actions { display: flex; gap: 16px; flex-wrap: wrap; margin-bottom: 80px; }
+
+.btn-volt {
+  display: inline-flex; align-items: center; gap: 8px;
+  background: var(--volt);
+  color: var(--ink);
+  font-family: var(--f-mono);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  padding: 14px 28px;
+  border-radius: 4px;
+  border: none;
+  cursor: pointer;
+  text-decoration: none;
+  transition: all 0.2s var(--ease-out-expo);
+  position: relative;
+  overflow: hidden;
+}
+.btn-volt::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: white;
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+.btn-volt:hover { transform: translateY(-2px); box-shadow: 0 8px 32px rgba(232,245,32,0.3); }
+.btn-volt:hover::after { opacity: 0.1; }
+
+.btn-ghost {
+  display: inline-flex; align-items: center; gap: 8px;
+  background: transparent;
+  color: var(--white);
+  font-family: var(--f-mono);
+  font-size: 12px;
+  letter-spacing: 1px;
+  padding: 14px 28px;
+  border-radius: 4px;
+  border: 1px solid var(--wire);
+  cursor: pointer;
+  text-decoration: none;
+  transition: all 0.2s;
+}
+.btn-ghost:hover { border-color: var(--chalk); color: var(--chalk); }
+
+/* ── Stats strip ── */
+.stats-strip {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1px;
+  background: var(--wire);
+  border: 1px solid var(--wire);
+  border-radius: 8px;
+  overflow: hidden;
+  max-width: 680px;
+}
+.stat-cell {
+  background: var(--ink2);
+  padding: 24px 28px;
+}
+.stat-val {
+  font-family: var(--f-display);
+  font-size: 40px;
+  color: var(--volt);
+  line-height: 1;
+  margin-bottom: 4px;
+}
+.stat-lbl {
+  font-family: var(--f-mono);
+  font-size: 10px;
+  letter-spacing: 2px;
+  color: var(--mist);
+  text-transform: uppercase;
+}
+
+/* ═══ MAIN LAYOUT ═══════════════════════════════════════════ */
+main { max-width: 1100px; margin: 0 auto; padding: 0 32px 80px; }
+
+/* ── Section heading ── */
+.sec-head {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  margin-bottom: 32px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--wire);
+}
+.sec-title {
+  font-family: var(--f-display);
+  font-size: 36px;
+  letter-spacing: 2px;
+}
+.sec-title span { color: var(--volt); }
+
+/* ── Tabs ── */
+.tabs {
+  display: flex;
+  gap: 0;
+  margin-bottom: 48px;
+  border-bottom: 1px solid var(--wire);
+  overflow-x: auto;
+}
+.tab {
+  font-family: var(--f-mono);
+  font-size: 11px;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  padding: 14px 24px;
+  border: none;
+  background: none;
+  color: var(--mist);
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+  transition: all 0.2s;
+  white-space: nowrap;
+}
+.tab:hover { color: var(--white); }
+.tab.active { color: var(--volt); border-bottom-color: var(--volt); }
+
+.panel { display: none; }
+.panel.active { display: block; }
+
+/* ═══ BOUNTY CARDS ══════════════════════════════════════════ */
+.bounty-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+  gap: 2px;
+}
+
+.bounty-card {
+  background: var(--ink2);
+  border: 1px solid var(--wire);
+  padding: 28px;
+  cursor: pointer;
+  position: relative;
+  overflow: hidden;
+  transition: all 0.25s var(--ease-out-expo);
+}
+.bounty-card::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0;
+  width: 3px;
+  height: 0;
+  background: var(--volt);
+  transition: height 0.3s var(--ease-out-expo);
+}
+.bounty-card:hover { background: var(--ink3); border-color: var(--volt); transform: translateY(-2px); }
+.bounty-card:hover::before { height: 100%; }
+
+.card-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 16px;
+}
+.card-id {
+  font-family: var(--f-mono);
+  font-size: 10px;
+  color: var(--mist);
+  letter-spacing: 2px;
+}
+.card-status {
+  font-family: var(--f-mono);
+  font-size: 9px;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  padding: 3px 8px;
+  border-radius: 2px;
+}
+.status-open     { background: rgba(232,245,32,0.12); color: var(--volt); border: 1px solid rgba(232,245,32,0.3); }
+.status-submitted{ background: rgba(245,160,32,0.12); color: var(--amber); border: 1px solid rgba(245,160,32,0.3); }
+.status-judging  { background: rgba(32,245,212,0.12); color: var(--teal); border: 1px solid rgba(32,245,212,0.3); }
+.status-paid     { background: rgba(32,245,32,0.12);  color: #20f550; border: 1px solid rgba(32,245,32,0.3); }
+.status-failed   { background: rgba(245,32,64,0.12);  color: var(--red); border: 1px solid rgba(245,32,64,0.3); }
+.status-refunded { background: rgba(136,136,153,0.1); color: var(--mist); border: 1px solid var(--wire); }
+
+.card-title {
+  font-family: var(--f-display);
+  font-size: 22px;
+  letter-spacing: 1px;
+  line-height: 1.1;
+  margin-bottom: 12px;
+  color: var(--white);
+}
+.card-spec {
+  font-size: 13px;
+  color: var(--mist);
+  line-height: 1.6;
+  margin-bottom: 24px;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.card-bottom {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.card-reward {
+  font-family: var(--f-display);
+  font-size: 32px;
+  color: var(--volt);
+  line-height: 1;
+}
+.card-reward-unit {
+  font-family: var(--f-mono);
+  font-size: 10px;
+  color: var(--mist);
+  letter-spacing: 1px;
+  margin-top: 2px;
+}
+.card-claim {
+  font-family: var(--f-mono);
+  font-size: 11px;
+  letter-spacing: 1px;
+  padding: 10px 20px;
+  background: transparent;
+  border: 1px solid var(--volt);
+  color: var(--volt);
+  border-radius: 3px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.card-claim:hover { background: var(--volt); color: var(--ink); }
+
+/* ═══ FORMS ═════════════════════════════════════════════════ */
+.form-card {
+  background: var(--ink2);
+  border: 1px solid var(--wire);
+  padding: 40px;
+  border-radius: 4px;
+  max-width: 700px;
+}
+
+.form-group { margin-bottom: 24px; }
+
+label {
+  display: block;
+  font-family: var(--f-mono);
+  font-size: 10px;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: var(--mist);
+  margin-bottom: 8px;
+}
+
+input[type=text], input[type=number], input[type=url], textarea {
+  width: 100%;
+  background: var(--ink);
+  border: 1px solid var(--wire);
+  border-radius: 3px;
+  color: var(--white);
+  font-family: var(--f-mono);
+  font-size: 13px;
+  padding: 14px 16px;
+  outline: none;
+  transition: border-color 0.2s;
+  appearance: none;
+}
+input:focus, textarea:focus { border-color: var(--volt); }
+textarea { resize: vertical; min-height: 120px; line-height: 1.6; }
+
+.field-hint {
+  font-size: 12px;
+  color: var(--mist);
+  margin-top: 6px;
+  font-family: var(--f-mono);
+}
+
+.form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+
+/* ═══ ALERTS ════════════════════════════════════════════════ */
+.alert {
+  padding: 14px 18px;
+  border-radius: 3px;
+  font-family: var(--f-mono);
+  font-size: 12px;
+  margin-bottom: 20px;
+  display: none;
+  line-height: 1.5;
+}
+.alert.show { display: block; }
+.alert-success { background: rgba(32,245,32,0.08); border: 1px solid rgba(32,245,32,0.3); color: #20f550; }
+.alert-error   { background: rgba(245,32,64,0.08); border: 1px solid rgba(245,32,64,0.3); color: var(--red); }
+.alert-info    { background: rgba(32,245,212,0.08); border: 1px solid rgba(32,245,212,0.3); color: var(--teal); }
+
+/* ═══ MODAL ═════════════════════════════════════════════════ */
+.overlay {
+  display: none;
+  position: fixed; inset: 0;
+  background: rgba(0,0,0,0.8);
+  backdrop-filter: blur(8px);
+  z-index: 500;
+  align-items: center;
+  justify-content: center;
+}
+.overlay.open { display: flex; }
+
+.modal {
+  background: var(--ink2);
+  border: 1px solid var(--wire);
+  width: min(600px, 94vw);
+  max-height: 88vh;
+  overflow-y: auto;
+  position: relative;
+  animation: modal-in 0.3s var(--ease-out-expo);
+}
+@keyframes modal-in {
+  from { opacity:0; transform:translateY(20px) scale(0.97); }
+  to   { opacity:1; transform:translateY(0) scale(1); }
+}
+
+.modal-header {
+  padding: 28px 32px 24px;
+  border-bottom: 1px solid var(--wire);
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+.modal-title {
+  font-family: var(--f-display);
+  font-size: 28px;
+  letter-spacing: 1px;
+  line-height: 1.1;
+}
+.modal-close {
+  background: none; border: none;
+  color: var(--mist); font-size: 22px;
+  cursor: pointer; line-height: 1;
+  padding: 4px; flex-shrink: 0;
+}
+.modal-close:hover { color: var(--white); }
+
+.modal-body { padding: 28px 32px 32px; }
+
+.info-table { width: 100%; }
+.info-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--ink3);
+  gap: 16px;
+}
+.info-row:last-child { border-bottom: none; }
+.info-key { font-family: var(--f-mono); font-size: 10px; letter-spacing: 1px; color: var(--mist); text-transform: uppercase; white-space: nowrap; }
+.info-val { font-family: var(--f-mono); font-size: 12px; text-align: right; word-break: break-all; }
+
+.verdict-banner {
+  padding: 18px 20px;
+  margin-top: 20px;
+  border-radius: 3px;
+}
+.verdict-pass { background: rgba(32,245,32,0.08); border: 1px solid rgba(32,245,32,0.3); }
+.verdict-fail { background: rgba(245,32,64,0.08); border: 1px solid rgba(245,32,64,0.3); }
+.verdict-title { font-family: var(--f-display); font-size: 20px; letter-spacing: 1px; margin-bottom: 6px; }
+.verdict-pass .verdict-title { color: #20f550; }
+.verdict-fail .verdict-title { color: var(--red); }
+.verdict-reason { font-size: 13px; color: var(--mist); font-style: italic; }
+
+/* ── Empty state ── */
+.empty {
+  text-align: center;
+  padding: 80px 24px;
+  border: 1px dashed var(--wire);
+  background: var(--ink2);
+}
+.empty-icon { font-size: 48px; margin-bottom: 16px; }
+.empty h3 { font-family: var(--f-display); font-size: 24px; letter-spacing: 1px; margin-bottom: 8px; }
+.empty p { color: var(--mist); font-size: 14px; }
+
+/* ── Spinner ── */
+.spin {
+  display: inline-block;
+  width: 14px; height: 14px;
+  border: 2px solid rgba(255,255,255,0.2);
+  border-top-color: currentColor;
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+  vertical-align: middle;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ── HOW section ── */
+.how-grid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 0;
+  margin-bottom: 80px;
+  border: 1px solid var(--wire);
+}
+.how-step {
+  padding: 32px 24px;
+  border-right: 1px solid var(--wire);
+  position: relative;
+}
+.how-step:last-child { border-right: none; }
+.how-num {
+  font-family: var(--f-display);
+  font-size: 64px;
+  color: rgba(232,245,32,0.12);
+  line-height: 1;
+  margin-bottom: 12px;
+}
+.how-label {
+  font-family: var(--f-mono);
+  font-size: 10px;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: var(--volt);
+  margin-bottom: 8px;
+}
+.how-desc { font-size: 13px; color: var(--mist); line-height: 1.6; }
+
+/* ── Address badge ── */
+.addr-badge {
+  display: inline-flex; align-items: center; gap: 8px;
+  font-family: var(--f-mono);
+  font-size: 11px;
+  color: var(--teal);
+  background: rgba(32,245,212,0.06);
+  border: 1px solid rgba(32,245,212,0.2);
+  padding: 6px 14px;
+  border-radius: 3px;
+}
+
+/* ── Ticker tape ── */
+.ticker {
+  border-top: 1px solid var(--wire);
+  border-bottom: 1px solid var(--wire);
+  background: var(--ink2);
+  overflow: hidden;
+  height: 38px;
+  display: flex;
+  align-items: center;
+  margin-bottom: 64px;
+}
+.ticker-inner {
+  display: flex;
+  gap: 48px;
+  white-space: nowrap;
+  animation: scroll-left 30s linear infinite;
+  font-family: var(--f-mono);
+  font-size: 11px;
+  color: var(--mist);
+  letter-spacing: 2px;
+}
+@keyframes scroll-left {
+  from { transform: translateX(0); }
+  to   { transform: translateX(-50%); }
+}
+.ticker-item { color: var(--volt); }
+
+@media (max-width: 768px) {
+  .hero h1 { font-size: 64px; }
+  .how-grid { grid-template-columns: 1fr 1fr; }
+  .form-row { grid-template-columns: 1fr; }
+  .bounty-grid { grid-template-columns: 1fr; }
+  .stats-strip { grid-template-columns: 1fr; }
+  header { padding: 0 16px; }
+  main, .hero { padding-left: 16px; padding-right: 16px; }
+}
+</style>
+</head>
+<body>
+
+<!-- ── HEADER ─────────────────────────────────────────────── -->
+<header>
+  <div class="logo">
+    <div class="logo-mark">
+      <svg viewBox="0 0 16 16" fill="none">
+        <path d="M8 2L13 5V11L8 14L3 11V5L8 2Z" fill="#0c0c0e" stroke="#0c0c0e" stroke-width="0.5"/>
+        <path d="M6 8L7.5 9.5L10.5 6.5" stroke="#0c0c0e" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+    </div>
+    <span class="logo-text">BOUNTY<span>HUNTER</span></span>
+  </div>
+  <div class="header-right">
+    <div class="chain-pill">
+      <div class="chain-dot"></div>
+      GENLAYER BRADBURY
+    </div>
+    <div id="walletAddr"></div>
+    <button id="walletBtn" onclick="connectWallet()">CONNECT WALLET</button>
+  </div>
+</header>
+
+<!-- ── HERO ────────────────────────────────────────────────── -->
+<section class="hero">
+  <div class="hero-grid"></div>
+  <div class="hero-content">
+    <div class="hero-eyebrow">Trustless · AI-Judged · On-Chain</div>
+    <h1>
+      GET PAID
+      <span class="line2">FOR REAL WORK</span>
+    </h1>
+    <p class="hero-sub">
+      Post a bounty, lock GEN in escrow. Solvers submit a URL.
+      The AI Judge fetches it, verdicts live, and funds auto-release.
+      No middlemen. No disputes. Just consensus.
+    </p>
+    <div class="hero-actions">
+      <button class="btn-volt" onclick="showTab('post')">POST A BOUNTY →</button>
+      <button class="btn-ghost" onclick="showTab('explore')">EXPLORE BOUNTIES</button>
+    </div>
+    <div class="stats-strip">
+      <div class="stat-cell">
+        <div class="stat-val" id="statTotal">—</div>
+        <div class="stat-lbl">Total Bounties</div>
+      </div>
+      <div class="stat-cell">
+        <div class="stat-val" id="statOpen">—</div>
+        <div class="stat-lbl">Open Now</div>
+      </div>
+      <div class="stat-cell">
+        <div class="stat-val" id="statPaid">—</div>
+        <div class="stat-lbl">GEN Paid Out</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── TICKER ──────────────────────────────────────────────── -->
+<div class="ticker">
+  <div class="ticker-inner" id="ticker">
+    <span>GENLAYER BRADBURY TESTNET</span>
+    <span class="ticker-item">◆ AI JUDGE ACTIVE</span>
+    <span>LLM CONSENSUS VERDICTS</span>
+    <span class="ticker-item">◆ TRUSTLESS ESCROW</span>
+    <span>ZERO MIDDLEMEN</span>
+    <span class="ticker-item">◆ AUTO-PAYOUT ON PASS</span>
+    <span>CONTRACT: <span id="contractShort">0xD9d8...F4B9</span></span>
+    <span class="ticker-item">◆ GENLAYER BRADBURY TESTNET</span>
+    <span>AI JUDGE ACTIVE</span>
+    <span class="ticker-item">◆ LLM CONSENSUS VERDICTS</span>
+    <span>TRUSTLESS ESCROW</span>
+    <span class="ticker-item">◆ ZERO MIDDLEMEN</span>
+    <span>AUTO-PAYOUT ON PASS</span>
+    <span class="ticker-item">◆ CONTRACT: 0xD9d8...F4B9</span>
+  </div>
+</div>
+
+<!-- ── MAIN ────────────────────────────────────────────────── -->
+<main>
+
+  <!-- HOW IT WORKS -->
+  <div class="how-grid">
+    <div class="how-step">
+      <div class="how-num">01</div>
+      <div class="how-label">Post</div>
+      <div class="how-desc">Write a spec. Lock GEN in smart contract escrow.</div>
+    </div>
+    <div class="how-step">
+      <div class="how-num">02</div>
+      <div class="how-label">Solve</div>
+      <div class="how-desc">Anyone submits a public URL as proof of work.</div>
+    </div>
+    <div class="how-step">
+      <div class="how-num">03</div>
+      <div class="how-label">Fetch</div>
+      <div class="how-desc">AI validators independently fetch the submitted URL.</div>
+    </div>
+    <div class="how-step">
+      <div class="how-num">04</div>
+      <div class="how-label">Verdict</div>
+      <div class="how-desc">LLM consensus judges content against the spec.</div>
+    </div>
+    <div class="how-step">
+      <div class="how-num">05</div>
+      <div class="how-label">Payout</div>
+      <div class="how-desc">PASS → GEN auto-transfers. FAIL → poster reclaims.</div>
+    </div>
+  </div>
+
+  <!-- TABS -->
+  <div class="tabs">
+    <button class="tab active" onclick="showTab('explore')">EXPLORE</button>
+    <button class="tab" onclick="showTab('post')">POST BOUNTY</button>
+    <button class="tab" onclick="showTab('submit')">SUBMIT SOLUTION</button>
+    <button class="tab" onclick="showTab('my')">MY BOUNTIES</button>
+  </div>
+
+  <!-- ── EXPLORE ────────────────────────────────────────── -->
+  <div id="tab-explore" class="panel active">
+    <div class="sec-head">
+      <div class="sec-title">OPEN <span>BOUNTIES</span></div>
+      <button class="btn-ghost" style="padding:8px 16px;font-size:11px;" onclick="loadBounties()">↻ REFRESH</button>
+    </div>
+    <div id="alert-explore" class="alert"></div>
+    <div class="bounty-grid" id="bountyGrid"></div>
+  </div>
+
+  <!-- ── POST ──────────────────────────────────────────── -->
+  <div id="tab-post" class="panel">
+    <div class="sec-head">
+      <div class="sec-title">POST A <span>BOUNTY</span></div>
+    </div>
+    <div class="form-card">
+      <div id="alert-post" class="alert"></div>
+      <div class="form-group">
+        <label>Bounty Title</label>
+        <input type="text" id="postTitle" placeholder="e.g. Build a Python CSV analyzer with tests"/>
+      </div>
+      <div class="form-group">
+        <label>Deliverable Spec <span style="color:var(--volt)">*</span></label>
+        <textarea id="postSpec" placeholder="Describe exactly what PASS looks like. The AI judge will read the submitted URL and compare it to this spec verbatim.
+
+Example: The submitted GitHub repo must contain a Python script that accepts a CSV, computes column averages, and outputs a Markdown table. Must have a README and at least one test file."></textarea>
+        <div class="field-hint">// Be specific — the AI judge reads this and the actual URL</div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Reward (GEN)</label>
+          <input type="number" id="postReward" placeholder="10" min="0.001" step="0.001"/>
+          <div class="field-hint">// Locked until verdict</div>
+        </div>
+        <div class="form-group">
+          <label>Deadline (unix timestamp, 0 = none)</label>
+          <input type="number" id="postDeadline" placeholder="0" min="0" value="0"/>
+          <div class="field-hint">// Optional expiry</div>
+        </div>
+      </div>
+      <button class="btn-volt" id="btnPost" onclick="postBounty()" style="width:100%;justify-content:center;">
+        LOCK FUNDS &amp; POST BOUNTY →
+      </button>
+    </div>
+  </div>
+
+  <!-- ── SUBMIT ─────────────────────────────────────────── -->
+  <div id="tab-submit" class="panel">
+    <div class="sec-head">
+      <div class="sec-title">SUBMIT <span>SOLUTION</span></div>
+    </div>
+    <div class="form-card" style="margin-bottom:32px;">
+      <div id="alert-submit" class="alert"></div>
+      <div class="form-group">
+        <label>Bounty ID</label>
+        <input type="number" id="subId" placeholder="0"/>
+      </div>
+      <div class="form-group">
+        <label>Submission URL</label>
+        <input type="url" id="subUrl" placeholder="https://github.com/you/your-project"/>
+        <div class="field-hint">// Must be publicly accessible — AI will fetch this URL</div>
+      </div>
+      <div style="display:flex;gap:12px;">
+        <button class="btn-ghost" onclick="previewSpec()" style="flex:1;justify-content:center;">PREVIEW SPEC</button>
+        <button class="btn-volt" id="btnSubmit" onclick="submitSolution()" style="flex:1;justify-content:center;">SUBMIT →</button>
+      </div>
+      <div id="specPreview" style="display:none;margin-top:20px;padding:16px;background:var(--ink);border:1px solid var(--wire);">
+        <div style="font-family:var(--f-mono);font-size:10px;color:var(--mist);letter-spacing:2px;margin-bottom:8px;">BOUNTY SPEC</div>
+        <div id="specPreviewText" style="font-size:13px;color:var(--chalk);line-height:1.6;"></div>
+      </div>
+    </div>
+
+    <div class="sec-head" style="margin-top:48px;">
+      <div class="sec-title">TRIGGER <span>AI JUDGE</span></div>
+    </div>
+    <div class="form-card">
+      <div id="alert-judge" class="alert"></div>
+      <p style="color:var(--mist);font-size:13px;margin-bottom:20px;font-family:var(--f-mono);line-height:1.6;">
+        // After submission, anyone can trigger the AI judge.<br/>
+        // Validators fetch the URL independently and reach LLM consensus.<br/>
+        // Funds auto-release on PASS verdict.
+      </p>
+      <div class="form-group">
+        <label>Bounty ID to Judge</label>
+        <input type="number" id="judgeId" placeholder="0"/>
+      </div>
+      <button class="btn-volt" id="btnJudge" onclick="judgeSubmission()" style="width:100%;justify-content:center;">
+        ⚖ TRIGGER AI JUDGE →
+      </button>
+    </div>
+  </div>
+
+  <!-- ── MY BOUNTIES ────────────────────────────────────── -->
+  <div id="tab-my" class="panel">
+    <div class="sec-head">
+      <div class="sec-title">MY <span>ACTIVITY</span></div>
+      <button class="btn-ghost" style="padding:8px 16px;font-size:11px;" onclick="loadMyBounties()">↻ LOAD</button>
+    </div>
+    <div id="alert-my" class="alert"></div>
+    <div id="myGrid"></div>
+
+    <div class="sec-head" style="margin-top:48px;">
+      <div class="sec-title">RECLAIM <span>FUNDS</span></div>
+    </div>
+    <div class="form-card">
+      <p style="color:var(--mist);font-family:var(--f-mono);font-size:12px;margin-bottom:20px;line-height:1.6;">
+        // Cancel an open bounty (no submissions yet) or reclaim after a FAIL verdict.
+      </p>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Bounty ID</label>
+          <input type="number" id="cancelId" placeholder="0"/>
+        </div>
+        <div class="form-group" style="display:flex;flex-direction:column;justify-content:flex-end;">
+          <button class="btn-ghost" onclick="cancelBounty()" style="border-color:var(--red);color:var(--red);">CANCEL &amp; RECLAIM →</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</main>
+
+<!-- ── MODAL ──────────────────────────────────────────────── -->
+<div class="overlay" id="overlay" onclick="closeOverlay(event)">
+  <div class="modal" id="modal">
+    <div class="modal-header">
+      <div class="modal-title" id="modalTitle">—</div>
+      <button class="modal-close" onclick="closeModal()">✕</button>
+    </div>
+    <div class="modal-body" id="modalBody"></div>
+  </div>
+</div>
+
+<script>
+// ═══════════════════════════════════════════════════════════
+// CONFIG
+// ═══════════════════════════════════════════════════════════
+const CONTRACT = "0xD9d8fFec51956B4C96C1D1D7c072B0eb0E14F4B9";
+const RPC      = "https://rpc.bradbury.genlayer.com";
+const CHAIN_ID = "0x139B";
+
+let wallet = null;
+
+// ═══════════════════════════════════════════════════════════
+// WALLET
+// ═══════════════════════════════════════════════════════════
+async function connectWallet() {
+  if (!window.ethereum) return alert("MetaMask not found");
+  const accounts = await window.ethereum.request({ method: "eth_requestAccounts" });
+  wallet = accounts[0];
+  document.getElementById("walletAddr").textContent = wallet.slice(0,6)+"…"+wallet.slice(-4);
+  document.getElementById("walletAddr").style.display = "block";
+  document.getElementById("walletBtn").style.display = "none";
+  try {
+    await window.ethereum.request({ method: "wallet_switchEthereumChain", params:[{chainId:CHAIN_ID}] });
+  } catch(e) {
+    if (e.code === 4902) {
+      await window.ethereum.request({ method: "wallet_addEthereumChain", params:[{
+        chainId: CHAIN_ID, chainName: "GenLayer Bradbury",
+        rpcUrls: [RPC], nativeCurrency: { name:"GEN", symbol:"GEN", decimals:18 }
+      }]});
+    }
+  }
+  await loadBounties();
+}
+
+// ═══════════════════════════════════════════════════════════
+// CONTRACT CALLS (genlayer-js via fetch)
+// ═══════════════════════════════════════════════════════════
+async function callView(method, args = []) {
+  const body = {
+    jsonrpc:"2.0", id:1, method:"gen_call",
+    params:[{ to: CONTRACT, data: encodeCall(method, args) }, "latest"]
+  };
+  const r = await fetch(RPC, { method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify(body) });
+  const d = await r.json();
+  if (d.error) throw new Error(d.error.message);
+  return decodeHex(d.result);
+}
+
+async function callWrite(method, args=[], valueWei=0n) {
+  if (!wallet) throw new Error("Connect wallet first");
+  const data = encodeCall(method, args);
+  return await window.ethereum.request({
+    method:"eth_sendTransaction",
+    params:[{ from:wallet, to:CONTRACT, data, value:"0x"+valueWei.toString(16) }]
+  });
+}
+
+function encodeCall(method, args) {
+  const payload = JSON.stringify({ method, args });
+  return "0x" + [...new TextEncoder().encode(payload)].map(b=>b.toString(16).padStart(2,"0")).join("");
+}
+function decodeHex(hex) {
+  if (!hex || hex==="0x") return null;
+  try {
+    const bytes = new Uint8Array(hex.slice(2).match(/.{2}/g).map(b=>parseInt(b,16)));
+    return JSON.parse(new TextDecoder().decode(bytes));
+  } catch { return hex; }
+}
+
+// ═══════════════════════════════════════════════════════════
+// LOAD BOUNTIES
+// ═══════════════════════════════════════════════════════════
+async function loadBounties() {
+  const grid = document.getElementById("bountyGrid");
+  grid.innerHTML = `<div class="empty"><div class="empty-icon">⏳</div><h3>LOADING</h3><p>Fetching on-chain data…</p></div>`;
+
+  let bounties, stats;
+  try {
+    [bounties, stats] = await Promise.all([
+      callView("get_open_bounties",[]),
+      callView("get_stats",[])
+    ]);
+  } catch {
+    bounties = DEMO_BOUNTIES;
+    stats = { total_created:3, total_paid_wei:0, next_id:3 };
+  }
+
+  bounties = bounties || DEMO_BOUNTIES;
+  document.getElementById("statTotal").textContent = stats?.total_created ?? bounties.length;
+  document.getElementById("statOpen").textContent  = bounties.length;
+  document.getElementById("statPaid").textContent  = stats?.total_paid_wei
+    ? (Number(BigInt(stats.total_paid_wei))/1e18).toFixed(1)+"G" : "0G";
+
+  if (!bounties.length) {
+    grid.innerHTML = `<div class="empty"><div class="empty-icon">🎯</div><h3>NO OPEN BOUNTIES</h3><p>Be the first to post one.</p></div>`;
+    return;
+  }
+
+  grid.innerHTML = bounties.map(b => `
+    <div class="bounty-card" onclick="openModal(${b.bounty_id})">
+      <div class="card-top">
+        <div class="card-id">BNT-${String(b.bounty_id).padStart(4,"0")}</div>
+        <div class="card-status status-${b.status||'open'}">${(b.status||'open').toUpperCase()}</div>
+      </div>
+      <div class="card-title">${esc(b.title)}</div>
+      <div class="card-spec">${esc(b.spec)}</div>
+      <div class="card-bottom">
+        <div>
+          <div class="card-reward">${(b.reward_wei/1e18).toFixed(2)}</div>
+          <div class="card-reward-unit">GEN REWARD</div>
+        </div>
+        <button class="card-claim" onclick="event.stopPropagation();prefillSubmit(${b.bounty_id})">CLAIM →</button>
+      </div>
+    </div>
+  `).join("");
+}
+
+// ═══════════════════════════════════════════════════════════
+// MODAL
+// ═══════════════════════════════════════════════════════════
+async function openModal(id) {
+  document.getElementById("overlay").classList.add("open");
+  document.getElementById("modalTitle").textContent = `BNT-${String(id).padStart(4,"0")}`;
+  document.getElementById("modalBody").innerHTML = `<div style="text-align:center;padding:32px;color:var(--mist);font-family:var(--f-mono);">LOADING…</div>`;
+
+  let b;
+  try { b = await callView("get_bounty",[id]); }
+  catch { b = DEMO_BOUNTIES.find(x=>x.bounty_id===id); }
+  if (!b) { document.getElementById("modalBody").innerHTML = "Not found."; return; }
+
+  document.getElementById("modalTitle").textContent = esc(b.title);
+  const gen = (b.reward_wei/1e18).toFixed(4);
+
+  document.getElementById("modalBody").innerHTML = `
+    <div style="display:flex;gap:8px;margin-bottom:20px;flex-wrap:wrap;">
+      <span class="card-status status-${b.status}">${(b.status||'').toUpperCase()}</span>
+      <span class="addr-badge">⬡ ${gen} GEN</span>
+    </div>
+    <p style="color:var(--mist);font-size:14px;line-height:1.7;margin-bottom:24px;">${esc(b.spec)}</p>
+    <div class="info-table">
+      <div class="info-row"><span class="info-key">Bounty ID</span><span class="info-val">#${b.bounty_id}</span></div>
+      <div class="info-row"><span class="info-key">Poster</span><span class="info-val" style="color:var(--mist)">${esc(b.poster||"—")}</span></div>
+      <div class="info-row"><span class="info-key">Reward</span><span class="info-val" style="color:var(--volt)">${gen} GEN</span></div>
+      <div class="info-row"><span class="info-key">Solver</span><span class="info-val" style="color:var(--mist)">${esc(b.solver||"—")}</span></div>
+      <div class="info-row"><span class="info-key">Submission</span><span class="info-val">${b.sub_url?`<a href="${esc(b.sub_url)}" target="_blank" style="color:var(--teal)">${esc(b.sub_url.slice(0,40))}…</a>`:"—"}</span></div>
+      <div class="info-row"><span class="info-key">Deadline</span><span class="info-val">${b.deadline>0?new Date(b.deadline*1000).toLocaleDateString():"None"}</span></div>
+    </div>
+    ${b.verdict ? `
+      <div class="verdict-banner verdict-${b.verdict}">
+        <div class="verdict-title">${b.verdict==="pass"?"✓ PASS — FUNDS RELEASED":"✗ FAIL — POSTER CAN RECLAIM"}</div>
+        <div class="verdict-reason">${esc(b.reasoning)}</div>
+      </div>` : ""}
+    ${b.status==="submitted"?`
+      <button class="btn-volt" style="width:100%;justify-content:center;margin-top:20px;"
+        onclick="closeModal();document.getElementById('judgeId').value=${b.bounty_id};showTab('submit')">
+        ⚖ TRIGGER AI JUDGE
+      </button>`:
+    b.status==="open"?`
+      <button class="btn-volt" style="width:100%;justify-content:center;margin-top:20px;"
+        onclick="closeModal();prefillSubmit(${b.bounty_id})">
+        CLAIM THIS BOUNTY →
+      </button>`:""}
+  `;
+}
+
+function closeOverlay(e) { if(e.target===document.getElementById("overlay")) closeModal(); }
+function closeModal() { document.getElementById("overlay").classList.remove("open"); }
+
+// ═══════════════════════════════════════════════════════════
+// POST BOUNTY
+// ═══════════════════════════════════════════════════════════
+async function postBounty() {
+  const title  = document.getElementById("postTitle").value.trim();
+  const spec   = document.getElementById("postSpec").value.trim();
+  const reward = parseFloat(document.getElementById("postReward").value);
+  const ddl    = parseInt(document.getElementById("postDeadline").value)||0;
+  clearA("alert-post");
+
+  if (!title) return showA("alert-post","Title is required","error");
+  if (spec.length<20) return showA("alert-post","Spec must be at least 20 characters","error");
+  if (!reward||reward<=0) return showA("alert-post","Reward must be > 0","error");
+  if (!wallet) return showA("alert-post","Connect wallet first","error");
+
+  const btn = document.getElementById("btnPost");
+  btn.disabled=true; btn.innerHTML='<span class="spin"></span> POSTING…';
+  try {
+    const wei = BigInt(Math.round(reward*1e18));
+    const tx  = await callWrite("post_bounty",[title,spec,ddl],wei);
+    showA("alert-post",`✓ BOUNTY POSTED — TX: ${tx.slice(0,22)}…`,"success");
+    document.getElementById("postTitle").value="";
+    document.getElementById("postSpec").value="";
+    document.getElementById("postReward").value="";
+    setTimeout(()=>{ loadBounties(); showTab("explore"); },1000);
+  } catch(e) {
+    showA("alert-post","ERROR: "+e.message,"error");
+  } finally {
+    btn.disabled=false; btn.innerHTML='LOCK FUNDS & POST BOUNTY →';
+  }
+}
+
+// ═══════════════════════════════════════════════════════════
+// SUBMIT SOLUTION
+// ═══════════════════════════════════════════════════════════
+async function submitSolution() {
+  const id  = parseInt(document.getElementById("subId").value);
+  const url = document.getElementById("subUrl").value.trim();
+  clearA("alert-submit");
+  if (isNaN(id)) return showA("alert-submit","Enter a valid bounty ID","error");
+  if (!url.startsWith("http")) return showA("alert-submit","URL must start with http:// or https://","error");
+  if (!wallet) return showA("alert-submit","Connect wallet first","error");
+
+  const btn = document.getElementById("btnSubmit");
+  btn.disabled=true; btn.innerHTML='<span class="spin"></span> SUBMITTING…';
+  try {
+    const tx = await callWrite("submit_solution",[id,url]);
+    showA("alert-submit",`✓ SOLUTION SUBMITTED — TX: ${tx.slice(0,22)}…`,"success");
+    document.getElementById("subUrl").value="";
+  } catch(e) {
+    showA("alert-submit","ERROR: "+e.message,"error");
+  } finally {
+    btn.disabled=false; btn.innerHTML='SUBMIT →';
+  }
+}
+
+async function judgeSubmission() {
+  const id = parseInt(document.getElementById("judgeId").value);
+  clearA("alert-judge");
+  if (isNaN(id)) return showA("alert-judge","Enter a valid bounty ID","error");
+  if (!wallet) return showA("alert-judge","Connect wallet first","error");
+
+  const btn = document.getElementById("btnJudge");
+  btn.disabled=true; btn.innerHTML='<span class="spin"></span> AI JUDGING IN PROGRESS…';
+  showA("alert-judge","// LLM validators are fetching the URL and reaching consensus. This may take 30–90 seconds.","info");
+  try {
+    const tx = await callWrite("judge_submission",[id]);
+    showA("alert-judge",`✓ VERDICT COMMITTED — TX: ${tx.slice(0,22)}… Check bounty #${id} for result.`,"success");
+    await loadBounties();
+  } catch(e) {
+    showA("alert-judge","ERROR: "+e.message,"error");
+  } finally {
+    btn.disabled=false; btn.innerHTML='⚖ TRIGGER AI JUDGE →';
+  }
+}
+
+async function previewSpec() {
+  const id = parseInt(document.getElementById("subId").value);
+  if (isNaN(id)) return;
+  let b;
+  try { b = await callView("get_bounty",[id]); }
+  catch { b = DEMO_BOUNTIES.find(x=>x.bounty_id===id); }
+  if (b) {
+    document.getElementById("specPreview").style.display="block";
+    document.getElementById("specPreviewText").textContent=b.spec;
+  }
+}
+
+async function loadMyBounties() {
+  if (!wallet) return showA("alert-my","Connect wallet first","error");
+  const el = document.getElementById("myGrid");
+  el.innerHTML=`<div class="empty"><div class="empty-icon">⏳</div><h3>LOADING</h3></div>`;
+  try {
+    let ids;
+    try { ids = await callView("get_poster_bounties",[wallet]); }
+    catch { ids=[]; }
+    if (!ids.length) {
+      el.innerHTML=`<div class="empty"><div class="empty-icon">📋</div><h3>NO BOUNTIES POSTED</h3><p>Post your first bounty above.</p></div>`;
+      return;
+    }
+    const bs = await Promise.all(ids.map(id=>callView("get_bounty",[id]).catch(()=>null)));
+    el.innerHTML=`<div class="bounty-grid">${bs.filter(Boolean).map(b=>`
+      <div class="bounty-card" onclick="openModal(${b.bounty_id})">
+        <div class="card-top">
+          <div class="card-id">BNT-${String(b.bounty_id).padStart(4,"0")}</div>
+          <div class="card-status status-${b.status}">${b.status.toUpperCase()}</div>
+        </div>
+        <div class="card-title">${esc(b.title)}</div>
+        <div class="card-bottom">
+          <div>
+            <div class="card-reward">${(b.reward_wei/1e18).toFixed(2)}</div>
+            <div class="card-reward-unit">GEN</div>
+          </div>
+          ${b.verdict?`<div class="card-status verdict-${b.verdict}" style="align-self:flex-end">${b.verdict.toUpperCase()}</div>`:""}
+        </div>
+      </div>`).join("")}</div>`;
+  } catch(e) {
+    showA("alert-my","ERROR: "+e.message,"error");
+  }
+}
+
+async function cancelBounty() {
+  const id = parseInt(document.getElementById("cancelId").value);
+  if (isNaN(id)) return;
+  if (!wallet) return showA("alert-my","Connect wallet first","error");
+  try {
+    const tx = await callWrite("cancel_bounty",[id]);
+    showA("alert-my",`✓ BOUNTY #${id} CANCELLED — TX: ${tx.slice(0,22)}…`,"success");
+    await loadBounties();
+  } catch(e) {
+    showA("alert-my","ERROR: "+e.message,"error");
+  }
+}
+
+// ═══════════════════════════════════════════════════════════
+// UTILS
+// ═══════════════════════════════════════════════════════════
+function showTab(name) {
+  document.querySelectorAll(".tab").forEach((t,i)=>{
+    const names=["explore","post","submit","my"];
+    t.classList.toggle("active",names[i]===name);
+  });
+  document.querySelectorAll(".panel").forEach(p=>p.classList.remove("active"));
+  document.getElementById("tab-"+name).classList.add("active");
+  if(name==="my") loadMyBounties();
+}
+function prefillSubmit(id) {
+  document.getElementById("subId").value=id;
+  showTab("submit");
+}
+function showA(id,msg,type) {
+  const el=document.getElementById(id);
+  el.className="alert alert-"+type+" show";
+  el.textContent=msg;
+}
+function clearA(id) {
+  const el=document.getElementById(id);
+  el.className="alert"; el.textContent="";
+}
+function esc(s) {
+  if(!s) return "";
+  return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
+}
+
+// ═══════════════════════════════════════════════════════════
+// DEMO DATA (shown when contract not reachable)
+// ═══════════════════════════════════════════════════════════
+const DEMO_BOUNTIES = [
+  { bounty_id:0, poster:"0xABC…123", title:"Build a Python CSV Analyzer", spec:"The submitted GitHub repo must contain a Python script that accepts a CSV file, computes column averages, and outputs a Markdown table. Must include a README with usage instructions and at least one test file.", reward_wei:5e18, deadline:0, status:"open", solver:"", sub_url:"", verdict:"", reasoning:"" },
+  { bounty_id:1, poster:"0xDEF…456", title:"Write a GenLayer Tutorial", spec:"The submitted URL must be a published blog post or GitHub page explaining how GenLayer Intelligent Contracts work. Must cover LLM consensus and include a code example using gl.nondet.exec_prompt.", reward_wei:10e18, deadline:0, status:"open", solver:"", sub_url:"", verdict:"", reasoning:"" },
+  { bounty_id:2, poster:"0x111…222", title:"Deploy a DeFi Landing Page", spec:"A publicly deployed webpage with hero section, features grid, and a Connect Wallet button. Must be mobile responsive and load in under 3 seconds.", reward_wei:20e18, deadline:0, status:"open", solver:"", sub_url:"", verdict:"", reasoning:"" },
+];
+
+// ═══════════════════════════════════════════════════════════
+// INIT
+// ═══════════════════════════════════════════════════════════
+window.addEventListener("load", () => {
+  loadBounties();
+  if (window.ethereum) {
+    window.ethereum.on("accountsChanged", accs => {
+      wallet = accs[0]||null;
+      const el = document.getElementById("walletAddr");
+      const btn = document.getElementById("walletBtn");
+      if (wallet) { el.textContent=wallet.slice(0,6)+"…"+wallet.slice(-4); el.style.display="block"; btn.style.display="none"; }
+      else { el.style.display="none"; btn.style.display="block"; }
+    });
+  }
+});
+</script>
+</body>
+</html>
