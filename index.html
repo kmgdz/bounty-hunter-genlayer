@@ -687,7 +687,7 @@ textarea { resize: vertical; min-height: 120px; line-height: 1.6; }
       GENLAYER BRADBURY
     </div>
     <div id="walletAddr"></div>
-    <button id="walletBtn" onclick="connectWallet()">CONNECT WALLET</button>
+    <button id="walletBtn">CONNECT WALLET</button>
   </div>
 </header>
 
@@ -706,8 +706,8 @@ textarea { resize: vertical; min-height: 120px; line-height: 1.6; }
       No middlemen. No disputes. Just consensus.
     </p>
     <div class="hero-actions">
-      <button class="btn-volt" onclick="showTab('post')">POST A BOUNTY →</button>
-      <button class="btn-ghost" onclick="showTab('explore')">EXPLORE BOUNTIES</button>
+      <button class="btn-volt" data-tab="post">POST A BOUNTY →</button>
+      <button class="btn-ghost" data-tab="explore">EXPLORE BOUNTIES</button>
     </div>
     <div class="stats-strip">
       <div class="stat-cell">
@@ -780,17 +780,17 @@ textarea { resize: vertical; min-height: 120px; line-height: 1.6; }
 
   <!-- TABS -->
   <div class="tabs">
-    <button class="tab active" onclick="showTab('explore')">EXPLORE</button>
-    <button class="tab" onclick="showTab('post')">POST BOUNTY</button>
-    <button class="tab" onclick="showTab('submit')">SUBMIT SOLUTION</button>
-    <button class="tab" onclick="showTab('my')">MY BOUNTIES</button>
+    <button class="tab active" data-tab="explore">EXPLORE</button>
+    <button class="tab" data-tab="post">POST BOUNTY</button>
+    <button class="tab" data-tab="submit">SUBMIT SOLUTION</button>
+    <button class="tab" data-tab="my">MY BOUNTIES</button>
   </div>
 
   <!-- ── EXPLORE ────────────────────────────────────────── -->
   <div id="tab-explore" class="panel active">
     <div class="sec-head">
       <div class="sec-title">OPEN <span>BOUNTIES</span></div>
-      <button class="btn-ghost" style="padding:8px 16px;font-size:11px;" onclick="loadBounties()">↻ REFRESH</button>
+      <button class="btn-ghost" style="padding:8px 16px;font-size:11px;" id="btnRefresh">↻ REFRESH</button>
     </div>
     <div id="alert-explore" class="alert"></div>
     <div class="bounty-grid" id="bountyGrid"></div>
@@ -826,7 +826,7 @@ Example: The submitted GitHub repo must contain a Python script that accepts a C
           <div class="field-hint">// Optional expiry</div>
         </div>
       </div>
-      <button class="btn-volt" id="btnPost" onclick="postBounty()" style="width:100%;justify-content:center;">
+      <button class="btn-volt" id="btnPost" id="btnPostAction" style="width:100%;justify-content:center;">
         LOCK FUNDS &amp; POST BOUNTY →
       </button>
     </div>
@@ -849,8 +849,8 @@ Example: The submitted GitHub repo must contain a Python script that accepts a C
         <div class="field-hint">// Must be publicly accessible — AI will fetch this URL</div>
       </div>
       <div style="display:flex;gap:12px;">
-        <button class="btn-ghost" onclick="previewSpec()" style="flex:1;justify-content:center;">PREVIEW SPEC</button>
-        <button class="btn-volt" id="btnSubmit" onclick="submitSolution()" style="flex:1;justify-content:center;">SUBMIT →</button>
+        <button class="btn-ghost" id="btnPreview" style="flex:1;justify-content:center;">PREVIEW SPEC</button>
+        <button class="btn-volt" id="btnSubmit" id="btnSubmitAction" style="flex:1;justify-content:center;">SUBMIT →</button>
       </div>
       <div id="specPreview" style="display:none;margin-top:20px;padding:16px;background:var(--ink);border:1px solid var(--wire);">
         <div style="font-family:var(--f-mono);font-size:10px;color:var(--mist);letter-spacing:2px;margin-bottom:8px;">BOUNTY SPEC</div>
@@ -872,7 +872,7 @@ Example: The submitted GitHub repo must contain a Python script that accepts a C
         <label>Bounty ID to Judge</label>
         <input type="number" id="judgeId" placeholder="0"/>
       </div>
-      <button class="btn-volt" id="btnJudge" onclick="judgeSubmission()" style="width:100%;justify-content:center;">
+      <button class="btn-volt" id="btnJudge" id="btnJudgeAction" style="width:100%;justify-content:center;">
         ⚖ TRIGGER AI JUDGE →
       </button>
     </div>
@@ -882,7 +882,7 @@ Example: The submitted GitHub repo must contain a Python script that accepts a C
   <div id="tab-my" class="panel">
     <div class="sec-head">
       <div class="sec-title">MY <span>ACTIVITY</span></div>
-      <button class="btn-ghost" style="padding:8px 16px;font-size:11px;" onclick="loadMyBounties()">↻ LOAD</button>
+      <button class="btn-ghost" style="padding:8px 16px;font-size:11px;" id="btnRefreshMy">↻ LOAD</button>
     </div>
     <div id="alert-my" class="alert"></div>
     <div id="myGrid"></div>
@@ -900,7 +900,7 @@ Example: The submitted GitHub repo must contain a Python script that accepts a C
           <input type="number" id="cancelId" placeholder="0"/>
         </div>
         <div class="form-group" style="display:flex;flex-direction:column;justify-content:flex-end;">
-          <button class="btn-ghost" onclick="cancelBounty()" style="border-color:var(--red);color:var(--red);">CANCEL &amp; RECLAIM →</button>
+          <button class="btn-ghost" id="btnCancelAction" style="border-color:var(--red);color:var(--red);">CANCEL &amp; RECLAIM →</button>
         </div>
       </div>
     </div>
@@ -913,7 +913,7 @@ Example: The submitted GitHub repo must contain a Python script that accepts a C
   <div class="modal" id="modal">
     <div class="modal-header">
       <div class="modal-title" id="modalTitle">—</div>
-      <button class="modal-close" onclick="closeModal()">✕</button>
+      <button class="modal-close" id="btnModalClose">✕</button>
     </div>
     <div class="modal-body" id="modalBody"></div>
   </div>
@@ -933,63 +933,63 @@ let wallet = null;
 // WALLET
 // ═══════════════════════════════════════════════════════════
 async function connectWallet() {
-  if (!window.ethereum) return alert("MetaMask not found. Please install it from metamask.io");
+  if (!window.ethereum) {
+    alert("MetaMask not found. Install it from metamask.io");
+    return;
+  }
 
   const btn = document.getElementById("walletBtn");
   btn.textContent = "CONNECTING…";
   btn.disabled = true;
 
   try {
-    // 1. Request accounts
+    // Step 1: unlock MetaMask and get accounts
     const accounts = await window.ethereum.request({ method: "eth_requestAccounts" });
+    if (!accounts || accounts.length === 0) throw new Error("No accounts found");
     wallet = accounts[0];
 
-    // 2. Try switching to Bradbury
+    // Step 2: add Bradbury network (safe to call even if already added)
     try {
       await window.ethereum.request({
-        method: "wallet_switchEthereumChain",
-        params: [{ chainId: CHAIN_ID }]
+        method: "wallet_addEthereumChain",
+        params: [{
+          chainId:           CHAIN_ID,
+          chainName:         "GenLayer Bradbury Testnet",
+          rpcUrls:           [RPC],
+          blockExplorerUrls: ["https://explorer-bradbury.genlayer.com"],
+          nativeCurrency:    { name: "GEN", symbol: "GEN", decimals: 18 }
+        }]
       });
-    } catch(switchErr) {
-      if (switchErr.code === 4902) {
-        // Network not added yet — add it then switch
-        await window.ethereum.request({
-          method: "wallet_addEthereumChain",
-          params: [{
-            chainId:           CHAIN_ID,
-            chainName:         "GenLayer Bradbury Testnet",
-            rpcUrls:           [RPC],
-            blockExplorerUrls: ["https://explorer-bradbury.genlayer.com"],
-            nativeCurrency:    { name: "GEN", symbol: "GEN", decimals: 18 }
-          }]
-        });
-        await window.ethereum.request({
-          method: "wallet_switchEthereumChain",
-          params: [{ chainId: CHAIN_ID }]
-        });
-      } else {
-        throw switchErr;
-      }
+    } catch(addErr) {
+      // code 4001 = user rejected — that's fine, network may already exist
+      if (addErr.code !== 4001) console.warn("addEthereumChain:", addErr.message);
     }
 
-    // 3. Confirm correct chain
-    const currentChain = await window.ethereum.request({ method: "eth_chainId" });
-    if (currentChain.toLowerCase() !== CHAIN_ID.toLowerCase()) {
-      throw new Error("Please manually switch to GenLayer Bradbury Testnet in MetaMask");
+    // Step 3: switch to Bradbury
+    await window.ethereum.request({
+      method: "wallet_switchEthereumChain",
+      params: [{ chainId: CHAIN_ID }]
+    });
+
+    // Step 4: verify we are on Bradbury
+    const chain = await window.ethereum.request({ method: "eth_chainId" });
+    if (chain.toLowerCase() !== CHAIN_ID.toLowerCase()) {
+      throw new Error("Switch to GenLayer Bradbury Testnet in MetaMask and try again");
     }
 
-    // 4. Update UI
-    document.getElementById("walletAddr").textContent = wallet.slice(0,6)+"…"+wallet.slice(-4);
+    // Step 5: update UI
+    document.getElementById("walletAddr").textContent = wallet.slice(0,6) + "…" + wallet.slice(-4);
     document.getElementById("walletAddr").style.display = "block";
     btn.style.display = "none";
 
-    // 5. Load live on-chain data
+    // Step 6: load live data
     await loadBounties();
 
   } catch(e) {
     btn.textContent = "CONNECT WALLET";
     btn.disabled = false;
-    alert("Connection failed: " + e.message);
+    // User rejected is not an error worth alerting
+    if (e.code !== 4001) alert("Error: " + e.message);
   }
 }
 
@@ -1300,9 +1300,61 @@ function esc(s) {
 // No demo data — all data comes from the live contract only
 
 // ═══════════════════════════════════════════════════════════
+// EVENT LISTENERS — no inline onclick (CSP safe)
+// ═══════════════════════════════════════════════════════════
+function bindEvents() {
+  // Wallet
+  const walletBtn = document.getElementById("walletBtn");
+  if (walletBtn) walletBtn.addEventListener("click", connectWallet);
+
+  // Tabs — all elements with data-tab attribute
+  document.querySelectorAll("[data-tab]").forEach(el => {
+    el.addEventListener("click", () => showTab(el.dataset.tab));
+  });
+
+  // Refresh buttons
+  const btnRefresh = document.getElementById("btnRefresh");
+  if (btnRefresh) btnRefresh.addEventListener("click", loadBounties);
+
+  const btnRefreshMy = document.getElementById("btnRefreshMy");
+  if (btnRefreshMy) btnRefreshMy.addEventListener("click", loadMyBounties);
+
+  // Post bounty
+  const btnPostAction = document.getElementById("btnPostAction");
+  if (btnPostAction) btnPostAction.addEventListener("click", postBounty);
+
+  // Submit solution
+  const btnSubmitAction = document.getElementById("btnSubmitAction");
+  if (btnSubmitAction) btnSubmitAction.addEventListener("click", submitSolution);
+
+  // Preview spec
+  const btnPreview = document.getElementById("btnPreview");
+  if (btnPreview) btnPreview.addEventListener("click", previewSpec);
+
+  // Judge
+  const btnJudgeAction = document.getElementById("btnJudgeAction");
+  if (btnJudgeAction) btnJudgeAction.addEventListener("click", judgeSubmission);
+
+  // Cancel bounty
+  const btnCancelAction = document.getElementById("btnCancelAction");
+  if (btnCancelAction) btnCancelAction.addEventListener("click", cancelBounty);
+
+  // Modal close button
+  const btnModalClose = document.getElementById("btnModalClose");
+  if (btnModalClose) btnModalClose.addEventListener("click", closeModal);
+
+  // Modal overlay click-outside
+  const overlay = document.getElementById("overlay");
+  if (overlay) overlay.addEventListener("click", closeOverlay);
+}
+
+// ═══════════════════════════════════════════════════════════
 // INIT
 // ═══════════════════════════════════════════════════════════
 window.addEventListener("load", () => {
+  // Bind all event listeners (CSP-safe, no inline onclick)
+  bindEvents();
+
   // Stats start blank — only populate after real contract call
   document.getElementById("statTotal").textContent = "—";
   document.getElementById("statOpen").textContent  = "—";
