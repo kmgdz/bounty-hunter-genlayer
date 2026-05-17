@@ -344,31 +344,60 @@ async function connectWallet() {
 }
 
 // ── CONTRACT ─────────────────────────────────────────────────
-async function callView(method, args) {
-  args = args || [];
-  const payload = JSON.stringify({ method: method, args: args });
-  const hex = "0x" + Array.from(new TextEncoder().encode(payload)).map(b => b.toString(16).padStart(2,"0")).join("");
-  const res = await fetch(RPC, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ jsonrpc:"2.0", id:1, method:"gen_call", params:[{ to: CONTRACT, data: hex }, "latest"] })
-  });
-  const d = await res.json();
-  if (d.error) throw new Error(d.error.message);
-  if (!d.result || d.result === "0x") return null;
-  const bytes = new Uint8Array(d.result.slice(2).match(/.{2}/g).map(function(b){ return parseInt(b,16); }));
-  return JSON.parse(new TextDecoder().decode(bytes));
+// Encode method + args into hex for GenLayer gen_call
+function encodeCall(method, args) {
+  var payload = JSON.stringify({ method: method, args: args || [] });
+  return "0x" + Array.from(new TextEncoder().encode(payload))
+    .map(function(b){ return b.toString(16).padStart(2,"0"); }).join("");
 }
 
+// Decode hex response from gen_call into parsed JSON
+function decodeResponse(hex) {
+  if (!hex || hex === "0x" || hex === "00") return null;
+  try {
+    var bytes = new Uint8Array(hex.replace(/^0x/,"").match(/.{2}/g)
+      .map(function(b){ return parseInt(b,16); }));
+    return JSON.parse(new TextDecoder().decode(bytes));
+  } catch(e) { return null; }
+}
+
+// Read-only contract call using gen_call with type="read"
+async function callView(method, args) {
+  var from = wallet || "0x0000000000000000000000000000000000000000";
+  var res = await fetch(RPC, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      jsonrpc: "2.0", id: 1, method: "gen_call",
+      params: [{
+        type: "read",
+        from: from,
+        to:   CONTRACT,
+        data: encodeCall(method, args)
+      }]
+    })
+  });
+  var d = await res.json();
+  if (d.error) throw new Error(d.error.message);
+  if (!d.result) throw new Error("Empty response from contract");
+  if (d.result.status && d.result.status.code !== 0) {
+    throw new Error(d.result.status.message || "Contract error");
+  }
+  return decodeResponse(d.result.data);
+}
+
+// Write contract call via MetaMask (eth_sendTransaction)
 async function callWrite(method, args, valueWei) {
-  args = args || [];
-  valueWei = valueWei || 0n;
   if (!wallet) throw new Error("Connect wallet first");
-  const payload = JSON.stringify({ method: method, args: args });
-  const hex = "0x" + Array.from(new TextEncoder().encode(payload)).map(b => b.toString(16).padStart(2,"0")).join("");
+  valueWei = valueWei || 0n;
   return await window.ethereum.request({
     method: "eth_sendTransaction",
-    params: [{ from: wallet, to: CONTRACT, data: hex, value: "0x" + valueWei.toString(16) }]
+    params: [{
+      from:  wallet,
+      to:    CONTRACT,
+      data:  encodeCall(method, args),
+      value: "0x" + valueWei.toString(16)
+    }]
   });
 }
 
