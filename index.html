@@ -180,7 +180,7 @@ textarea{resize:vertical;min-height:110px;line-height:1.6}
     BOUNTY<span>HUNTER</span>
   </div>
   <div class="hright">
-    <div class="chain-pill"><div class="cdot"></div>GENLAYER BRADBURY</div>
+    <div class="chain-pill"><div class="cdot"></div>GENLAYER STUDIONET</div>
     <div id="walletAddr"></div>
     <button id="walletBtn">CONNECT WALLET</button>
   </div>
@@ -206,13 +206,13 @@ textarea{resize:vertical;min-height:110px;line-height:1.6}
 
 <div class="ticker">
   <div class="ticker-inner">
-    <span>GENLAYER BRADBURY TESTNET</span><span class="ti">◆ AI JUDGE ACTIVE</span>
+    <span>GENLAYER STUDIONET TESTNET</span><span class="ti">◆ AI JUDGE ACTIVE</span>
     <span>LLM CONSENSUS VERDICTS</span><span class="ti">◆ TRUSTLESS ESCROW</span>
     <span>ZERO MIDDLEMEN</span><span class="ti">◆ AUTO-PAYOUT ON PASS</span>
-    <span>CONTRACT: 0xD9d8...F4B9</span><span class="ti">◆ GENLAYER BRADBURY TESTNET</span>
+    <span>CONTRACT: 0xD5D8...5444</span><span class="ti">◆ GENLAYER STUDIONET TESTNET</span>
     <span>AI JUDGE ACTIVE</span><span class="ti">◆ LLM CONSENSUS VERDICTS</span>
     <span>TRUSTLESS ESCROW</span><span class="ti">◆ ZERO MIDDLEMEN</span>
-    <span>AUTO-PAYOUT ON PASS</span><span class="ti">◆ CONTRACT: 0xD9d8...F4B9</span>
+    <span>AUTO-PAYOUT ON PASS</span><span class="ti">◆ CONTRACT: 0xD5D8...5444</span>
   </div>
 </div>
 
@@ -299,9 +299,9 @@ textarea{resize:vertical;min-height:110px;line-height:1.6}
 </div>
 
 <script>
-const CONTRACT = "0xD9d8fFec51956B4C96C1D1D7c072B0eb0E14F4B9";
-const RPC      = "https://rpc.bradbury.genlayer.com";
-const CHAIN_ID = "0x139B";
+const CONTRACT = "0xD5D822016E8db5072d9F4e989BAd11063E565444";
+const RPC      = "https://studio.genlayer.com/api";
+const CHAIN_ID = "0xF21F";
 let wallet = null;
 
 // ── WALLET ──────────────────────────────────────────────────
@@ -319,9 +319,9 @@ async function connectWallet() {
         method: "wallet_addEthereumChain",
         params: [{
           chainId: CHAIN_ID,
-          chainName: "GenLayer Bradbury Testnet",
+          chainName: "GenLayer Studionet",
           rpcUrls: [RPC],
-          blockExplorerUrls: ["https://explorer-bradbury.genlayer.com"],
+          blockExplorerUrls: ["https://explorer-studio.genlayer.com"],
           nativeCurrency: { name: "GEN", symbol: "GEN", decimals: 18 }
         }]
       });

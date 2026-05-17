@@ -1,4 +1,3 @@
-# v0.2.16
 # { "Depends": "py-genlayer:1jb45aa8ynh2a9c9xn3b7qqh8sm5q93hwfp7jqmwsfhh8jpz09h6" }
 
 from genlayer import *
@@ -15,32 +14,24 @@ class _Recipient:
 
 class BountyHunter(gl.Contract):
 
-    # Storage declared as class-level type annotations (real SDK pattern)
     next_id:        u256
     total_created:  u256
     total_paid_wei: u256
-    # bounty data stored as flat JSON strings keyed by id
-    bounty_data:    TreeMap[u256, str]
-    poster_ids:     TreeMap[str, str]   # poster -> comma-separated ids
+    bounties:       TreeMap[u256, str]   # bounty_id -> JSON string
 
     def __init__(self) -> None:
         self.next_id        = u256(0)
         self.total_created  = u256(0)
         self.total_paid_wei = u256(0)
-        self.bounty_data    = TreeMap()
-        self.poster_ids     = TreeMap()
-
-    # ── helpers ───────────────────────────────────────────────────────────────
+        self.bounties       = TreeMap()
 
     def _load(self, bounty_id: u256) -> dict:
-        raw = self.bounty_data[bounty_id]
-        return json.loads(raw)
+        return json.loads(self.bounties[bounty_id])
 
     def _save(self, bounty_id: u256, b: dict) -> None:
-        self.bounty_data[bounty_id] = json.dumps(b)
+        self.bounties[bounty_id] = json.dumps(b)
 
-    # ── post_bounty ───────────────────────────────────────────────────────────
-
+    # ── post_bounty ───────────────────────────────────────────
     @gl.public.write.payable
     def post_bounty(self, title: str, spec: str, deadline: u256) -> u256:
         reward = gl.message.value
@@ -54,7 +45,7 @@ class BountyHunter(gl.Contract):
         bid    = self.next_id
         poster = str(gl.message.sender)
 
-        b = {
+        self._save(bid, {
             "bounty_id":  int(bid),
             "poster":     poster,
             "title":      title,
@@ -66,28 +57,22 @@ class BountyHunter(gl.Contract):
             "sub_url":    "",
             "verdict":    "",
             "reasoning":  "",
-        }
-        self._save(bid, b)
-
-        # update poster index
-        existing = self.poster_ids.get(poster, "")
-        self.poster_ids[poster] = (existing + "," + str(int(bid))).strip(",")
+        })
 
         self.next_id       = self.next_id + u256(1)
         self.total_created = self.total_created + u256(1)
         return bid
 
-    # ── submit_solution ───────────────────────────────────────────────────────
-
+    # ── submit_solution ───────────────────────────────────────
     @gl.public.write
     def submit_solution(self, bounty_id: u256, sub_url: str) -> None:
-        if bounty_id not in self.bounty_data:
+        if bounty_id not in self.bounties:
             raise Exception("Bounty not found")
         b = self._load(bounty_id)
         if b["status"] != "open":
-            raise Exception("Bounty is not open for submissions")
+            raise Exception("Bounty is not open")
         if str(gl.message.sender) == b["poster"]:
-            raise Exception("Poster cannot solve their own bounty")
+            raise Exception("Poster cannot solve own bounty")
         if not (sub_url.startswith("http://") or sub_url.startswith("https://")):
             raise Exception("URL must start with http:// or https://")
 
@@ -96,15 +81,14 @@ class BountyHunter(gl.Contract):
         b["status"]  = "submitted"
         self._save(bounty_id, b)
 
-    # ── judge_submission ──────────────────────────────────────────────────────
-
+    # ── judge_submission ──────────────────────────────────────
     @gl.public.write
     def judge_submission(self, bounty_id: u256) -> None:
-        if bounty_id not in self.bounty_data:
+        if bounty_id not in self.bounties:
             raise Exception("Bounty not found")
         b = self._load(bounty_id)
         if b["status"] != "submitted":
-            raise Exception("Bounty has no pending submission")
+            raise Exception("No pending submission")
 
         b["status"] = "judging"
         self._save(bounty_id, b)
@@ -145,21 +129,22 @@ Required format:
             result = result.replace("```json", "").replace("```", "").strip()
             return result
 
-        # prompt_comparative: both leader and validator run fetch_and_judge
-        # independently, then an LLM checks if their verdicts match
         raw = gl.eq_principle.prompt_comparative(
             fetch_and_judge,
             'The "verdict" field must be the same in both responses'
         )
 
-        parsed    = json.loads(raw)
-        verdict   = str(parsed.get("verdict", "fail")).strip().lower()
-        reasoning = str(parsed.get("reasoning", ""))[:200]
+        try:
+            parsed    = json.loads(raw)
+            verdict   = str(parsed.get("verdict", "fail")).strip().lower()
+            reasoning = str(parsed.get("reasoning", ""))[:200]
+        except Exception:
+            verdict   = "fail"
+            reasoning = "Could not parse AI response"
 
         if verdict not in ("pass", "fail"):
             verdict = "fail"
 
-        # All storage writes and emit_transfer AFTER consensus
         b = self._load(bounty_id)
         b["verdict"]   = verdict
         b["reasoning"] = reasoning
@@ -173,31 +158,29 @@ Required format:
             b["status"] = "failed"
             self._save(bounty_id, b)
 
-    # ── cancel_bounty ─────────────────────────────────────────────────────────
-
+    # ── cancel_bounty ─────────────────────────────────────────
     @gl.public.write
     def cancel_bounty(self, bounty_id: u256) -> None:
-        if bounty_id not in self.bounty_data:
+        if bounty_id not in self.bounties:
             raise Exception("Bounty not found")
         b = self._load(bounty_id)
         if str(gl.message.sender) != b["poster"]:
-            raise Exception("Only the poster can cancel")
+            raise Exception("Only poster can cancel")
         if b["status"] != "open":
-            raise Exception("Can only cancel an open bounty")
+            raise Exception("Can only cancel open bounty")
 
         b["status"] = "refunded"
         self._save(bounty_id, b)
         _Recipient(Address(b["poster"])).emit_transfer(value=u256(b["reward_wei"]))
 
-    # ── reclaim_after_fail ────────────────────────────────────────────────────
-
+    # ── reclaim_after_fail ────────────────────────────────────
     @gl.public.write
     def reclaim_after_fail(self, bounty_id: u256) -> None:
-        if bounty_id not in self.bounty_data:
+        if bounty_id not in self.bounties:
             raise Exception("Bounty not found")
         b = self._load(bounty_id)
         if str(gl.message.sender) != b["poster"]:
-            raise Exception("Only the poster can reclaim")
+            raise Exception("Only poster can reclaim")
         if b["status"] != "failed":
             raise Exception("Verdict is not failed")
 
@@ -205,11 +188,10 @@ Required format:
         self._save(bounty_id, b)
         _Recipient(Address(b["poster"])).emit_transfer(value=u256(b["reward_wei"]))
 
-    # ── views ─────────────────────────────────────────────────────────────────
-
+    # ── views ─────────────────────────────────────────────────
     @gl.public.view
     def get_bounty(self, bounty_id: u256) -> dict:
-        if bounty_id not in self.bounty_data:
+        if bounty_id not in self.bounties:
             raise Exception("Bounty not found")
         return self._load(bounty_id)
 
@@ -218,7 +200,7 @@ Required format:
         result = []
         for i in range(int(self.next_id)):
             bid = u256(i)
-            if bid in self.bounty_data:
+            if bid in self.bounties:
                 b = self._load(bid)
                 if b["status"] == "open":
                     result.append({
@@ -230,13 +212,6 @@ Required format:
                         "spec":       b["spec"][:120] + ("..." if len(b["spec"]) > 120 else ""),
                     })
         return result
-
-    @gl.public.view
-    def get_poster_bounties(self, poster: str) -> list:
-        raw = self.poster_ids.get(poster, "")
-        if not raw:
-            return []
-        return [int(x) for x in raw.split(",") if x]
 
     @gl.public.view
     def get_stats(self) -> dict:
