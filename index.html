@@ -474,7 +474,7 @@ async function postBounty() {
   try {
     var wei = BigInt(Math.round(reward * 1e18));
     var tx  = await callWrite("post_bounty", [title, spec, ddl], wei);
-    showAlert("alertPost", "BOUNTY POSTED — TX: " + tx.slice(0,22) + "...", "ok");
+    showAlert("alertPost", "BOUNTY POSTED — <a href=\"" + "https://explorer-studio.genlayer.com/tx/" + tx + "\" target=\"_blank\" style=\"color:var(--ink);font-weight:700;text-decoration:underline;\">VIEW TX →</a>", "ok");
     document.getElementById("postTitle").value = "";
     document.getElementById("postSpec").value = "";
     document.getElementById("postReward").value = "";
@@ -498,7 +498,7 @@ async function submitSolution() {
   btn.disabled = true; btn.innerHTML = '<span class="spin"></span> SUBMITTING...';
   try {
     var tx = await callWrite("submit_solution", [id, url]);
-    showAlert("alertSubmit", "SOLUTION SUBMITTED — TX: " + tx.slice(0,22) + "...", "ok");
+    showAlert("alertSubmit", "SOLUTION SUBMITTED — <a href=\"" + "https://explorer-studio.genlayer.com/tx/" + tx + "\" target=\"_blank\" style=\"color:var(--ink);font-weight:700;text-decoration:underline;\">VIEW TX →</a>", "ok");
     document.getElementById("subUrl").value = "";
   } catch(e) {
     showAlert("alertSubmit", "ERROR: " + e.message, "err");
@@ -518,7 +518,7 @@ async function judgeSubmission() {
   showAlert("alertJudge", "LLM validators fetching URL and reaching consensus. May take 30-90s.", "info");
   try {
     var tx = await callWrite("judge_submission", [id]);
-    showAlert("alertJudge", "VERDICT COMMITTED — TX: " + tx.slice(0,22) + "... Check bounty #" + id, "ok");
+    showAlert("alertJudge", "VERDICT COMMITTED — <a href=\"" + "https://explorer-studio.genlayer.com/tx/" + tx + "\" target=\"_blank\" style=\"color:var(--ink);font-weight:700;text-decoration:underline;\">VIEW TX →</a> — Check bounty #" + id + " for result", "ok");
     await loadBounties();
   } catch(e) {
     showAlert("alertJudge", "ERROR: " + e.message, "err");
@@ -582,7 +582,7 @@ async function cancelBounty() {
   if (!wallet) return showAlert("alertMy", "Connect wallet first", "err");
   try {
     var tx = await callWrite("cancel_bounty", [id]);
-    showAlert("alertMy", "BOUNTY #" + id + " CANCELLED — TX: " + tx.slice(0,22) + "...", "ok");
+    showAlert("alertMy", "BOUNTY #" + id + " CANCELLED — <a href=\"" + "https://explorer-studio.genlayer.com/tx/" + tx + "\" target=\"_blank\" style=\"color:var(--ink);font-weight:700;text-decoration:underline;\">VIEW TX →</a>", "ok");
     await loadBounties();
   } catch(e) {
     showAlert("alertMy", "ERROR: " + e.message, "err");
@@ -610,10 +610,10 @@ function prefillSubmit(id) {
 function showAlert(id, msg, type) {
   var el = document.getElementById(id);
   if (!el) return;
-  if (!msg) { el.className = "alert"; el.textContent = ""; return; }
+  if (!msg) { el.className = "alert"; el.innerHTML = ""; return; }
   var cls = type === "ok" ? "a-ok" : type === "info" ? "a-info" : "a-err";
   el.className = "alert " + cls + " show";
-  el.textContent = msg;
+  el.innerHTML = msg;
 }
 
 function esc(s) {
