@@ -440,7 +440,11 @@ async function loadBounties() {
       });
     });
   } catch(e) {
-    grid.innerHTML = '<div class="empty"><div class="ei">⚠</div><h3>COULD NOT REACH CONTRACT</h3><p>' + esc(e.message) + '</p></div>';
+    var explorerUrl = "https://explorer-studio.genlayer.com/address/" + CONTRACT;
+    grid.innerHTML = '<div class="empty"><div class="ei">🔗</div><h3>VIEW ON EXPLORER</h3>' +
+      '<p style="margin-bottom:16px;">Direct contract reads are restricted by GenLayer network policy.<br>View all bounties and transactions on the explorer.</p>' +
+      '<a href="' + explorerUrl + '" target="_blank" class="btn-volt" style="display:inline-flex;text-decoration:none;">OPEN EXPLORER →</a>' +
+      '</div>';
     document.getElementById("statTotal").textContent = "—";
     document.getElementById("statOpen").textContent  = "—";
     document.getElementById("statPaid").textContent  = "—";
