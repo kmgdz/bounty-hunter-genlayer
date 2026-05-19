@@ -299,9 +299,10 @@ textarea{resize:vertical;min-height:110px;line-height:1.6}
 </div>
 
 <script>
-const CONTRACT = "0xD5D822016E8db5072d9F4e989BAd11063E565444";
-const RPC      = "https://studio.genlayer.com/api";
-const CHAIN_ID = "0xf22f";
+const CONTRACT  = "0xD5D822016E8db5072d9F4e989BAd11063E565444";
+const RPC       = "https://studio.genlayer.com/api";   // used by MetaMask
+const PROXY_RPC = "/api/rpc";                           // Vercel proxy for gen_call reads
+const CHAIN_ID  = "0xf22f";
 let wallet = null;
 
 // ── WALLET ──────────────────────────────────────────────────
@@ -361,10 +362,10 @@ function decodeResponse(hex) {
   } catch(e) { return null; }
 }
 
-// Read-only contract call using gen_call with type="read"
+// Read-only contract call — uses Vercel proxy to bypass CORS allowlist
 async function callView(method, args) {
   var from = wallet || "0x0000000000000000000000000000000000000000";
-  var res = await fetch(RPC, {
+  var res = await fetch(PROXY_RPC, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
